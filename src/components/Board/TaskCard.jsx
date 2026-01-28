@@ -1,9 +1,12 @@
 import React from 'react'
 
-function TaskCard() {
+const TaskCard = ({ task }) => {
   return (
-    <div>TaskCard</div>
-  )
-}
+    <div className="bg-white rounded-md p-3 shadow-sm">
+      <h3 className="font-medium">{task.title}</h3>
+      <p className="text-sm text-gray-600">{task.description}</p>
+    </div>
+  );
+};
 
-export default TaskCard
+export default TaskCard;
