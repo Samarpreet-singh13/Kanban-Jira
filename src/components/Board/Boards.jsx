@@ -1,7 +1,7 @@
 import { useContext, useState } from 'react'
 import Column from './Column'
 import { KanbanContext } from '../../contexts/KanbanContext'
-
+import { DragDropContext, Droppable, Draggable,} from '@hello-pangea/dnd';
 
 const Boards = () => {
   const { state, dispatch } = useContext(KanbanContext);
@@ -42,8 +42,24 @@ const Boards = () => {
       payload:{id,column,title,description}
     });
   }
+  // function to handle drag and drop
+  const handleDragEnd=(result)=> {
+    console.log(result);
+    if(!result.destination)return;
+    dispatch({
+      type:"MOVE_TASK",
+      payload:{
+        sourceCol:result.source.droppableId,
+        destCol:result.destination.droppableId,
+        sourceIndex:result.source.index,
+        destIndex:result.destination.index
+      },
+    });
+  }
+
   // this return function is rendering the columns and tasks on the board 
   return (
+    <DragDropContext onDragEnd={handleDragEnd}> 
      <div className="p-6">
       {/* adding task */}
       <form onSubmit={handleAddTask} className="mb-6 flex gap-3">
@@ -52,7 +68,7 @@ const Boards = () => {
           onChange={(e) => setTitle(e.target.value)}
           placeholder="Task title"
           className="border px-3 py-2 rounded w-1/3"
-        />
+          />
 
         <input
           value={description}
@@ -91,7 +107,8 @@ const Boards = () => {
         />
       </div>
     </div>
+  </DragDropContext>
   )
 }
 
-export default Boards
+export default Boards;
