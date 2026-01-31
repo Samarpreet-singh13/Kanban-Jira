@@ -9,6 +9,7 @@ const Boards = () => {
   // form state for adding new task
   const [title,setTitle]=useState("");
   const [description,setDescription]=useState("");
+  const [search,setSearch]=useState("");
 
   // function to handle adding new task
   const handleAddTask=(e)=>{
@@ -44,7 +45,7 @@ const Boards = () => {
   }
   // function to handle drag and drop
   const handleDragEnd=(result)=> {
-    console.log(result);
+    // console.log(result);
     if(!result.destination)return;
     dispatch({
       type:"MOVE_TASK",
@@ -57,10 +58,19 @@ const Boards = () => {
     });
   }
 
+  // filter tasks and search functionality
+  const filterTasks=(tasks)=>{
+    return tasks.filter((task)=>task.title.toLowerCase().includes(search.toLowerCase()));
+  };
+
   // this return function is rendering the columns and tasks on the board 
   return (
     <DragDropContext onDragEnd={handleDragEnd}> 
      <div className="p-6">
+      {/* search bar */}
+      <input placeholder='search tasks' value={search} onChange={(e)=>setSearch(e.target.value)}
+          className="border px-3 py-2 rounded mb-4 w-1/3"/>
+
       {/* adding task */}
       <form onSubmit={handleAddTask} className="mb-6 flex gap-3">
         <input
@@ -86,14 +96,14 @@ const Boards = () => {
         <Column
           title="Todo"
           columnKey="todo"
-          tasks={state.columns.todo}
+          tasks={filterTasks(state.columns.todo)}
           onDelete={handleDeleteTask}
           onEdit={handleEditTask}
         />
         <Column
           title="In Progress"
           columnKey="inProgress"
-          tasks={state.columns.inProgress}
+          tasks={filterTasks(state.columns.inProgress)}
           onDelete={handleDeleteTask}
           onEdit={handleEditTask}
         />
@@ -101,7 +111,7 @@ const Boards = () => {
         <Column
           title="Done"
           columnKey="done"
-          tasks={state.columns.done}
+          tasks={filterTasks(state.columns.done)}
           onDelete={handleDeleteTask}
           onEdit={handleEditTask}
         />
