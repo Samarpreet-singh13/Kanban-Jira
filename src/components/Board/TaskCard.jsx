@@ -1,6 +1,12 @@
 import { useState } from "react";
 import { Draggable } from "@hello-pangea/dnd";
 
+const priorityColors={
+  low:"bg-green-200 text-green-800",
+  medium: "bg-yellow-200 text-yellow-800",
+  high: "bg-red-200 text-red-800",
+}
+
 const TaskCard = ({ task, columnKey, onDelete, onEdit, index }) => {
   const [isEditing, setIsEditing] = useState(false);
   const [title, setTitle] = useState(task.title);
@@ -37,6 +43,9 @@ const TaskCard = ({ task, columnKey, onDelete, onEdit, index }) => {
             </>
           ) : (
             <>
+              <span className={`px-2 py-1 rounded text-xs mb-1 inline-block ${priorityColors[task.priority || "medium"]}`}>
+                {task.priority || "medium"}
+              </span>
               <h3>{task.title}</h3>
               <p>{task.description}</p>
               <button onClick={() => setIsEditing(true)}>Edit</button>

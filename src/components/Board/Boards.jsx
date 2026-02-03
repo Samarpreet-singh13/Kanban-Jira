@@ -1,7 +1,13 @@
 import { useContext, useState } from 'react'
 import Column from './Column'
 import { KanbanContext } from '../../contexts/KanbanContext'
-import { DragDropContext, Droppable, Draggable,} from '@hello-pangea/dnd';
+import { DragDropContext,} from '@hello-pangea/dnd';
+
+const priorityRank={
+  high:1,
+  medium:2,
+  low:3,
+}
 
 const Boards = () => {
   const { state, dispatch } = useContext(KanbanContext);
@@ -10,6 +16,10 @@ const Boards = () => {
   const [title,setTitle]=useState("");
   const [description,setDescription]=useState("");
   const [search,setSearch]=useState("");
+  const [priority,setPriority]=useState("medium");
+
+  // toggling sort on and off according to drag
+  const [isDragging,setIsDragging]=useState(false);
 
   // function to handle adding new task
   const handleAddTask=(e)=>{
@@ -23,7 +33,8 @@ const Boards = () => {
       payload:{
         id:Date.now().toString(),
         title,
-        description
+        description,
+        priority,
       },
     });
     // Clear form fields after adding task
@@ -63,9 +74,26 @@ const Boards = () => {
     return tasks.filter((task)=>task.title.toLowerCase().includes(search.toLowerCase()));
   };
 
+  const sortTasks=(tasks)=>{
+    return [...tasks].sort(
+      (a,b)=>priorityRank[a.priority||"medium"]-priorityRank[b.priority||"medium"]
+    );
+  };
+
+  // a function to manually update the task passing 
+  const getTasks=(tasks)=>{
+    const filtered=filterTasks(tasks);
+    return isDragging?filtered:sortTasks(filtered);
+  }
+
   // this return function is rendering the columns and tasks on the board 
   return (
-    <DragDropContext onDragEnd={handleDragEnd}> 
+    <DragDropContext
+      onDragStart={()=>setIsDragging(true)}
+      onDragEnd={(result)=>{
+        setIsDragging(false);
+        handleDragEnd(result);
+      }}> 
      <div className="p-6">
       {/* search bar */}
       <input placeholder='search tasks' value={search} onChange={(e)=>setSearch(e.target.value)}
@@ -86,7 +114,11 @@ const Boards = () => {
           placeholder="Description"
           className="border px-3 py-2 rounded w-1/3"
         />
-
+        <select value={priority} onChange={(e)=>setPriority(e.target.value)}className="border px-3 py-2 rounded">
+          <option value="low">low</option>
+          <option value="medium">medium</option>
+          <option value="high">high</option>
+        </select>
         <button className="px-4 py-2 bg-blue-600 text-white rounded">
           Add Task
         </button>
@@ -96,14 +128,14 @@ const Boards = () => {
         <Column
           title="Todo"
           columnKey="todo"
-          tasks={filterTasks(state.columns.todo)}
+          tasks={getTasks(state.columns.todo)}
           onDelete={handleDeleteTask}
           onEdit={handleEditTask}
         />
         <Column
           title="In Progress"
           columnKey="inProgress"
-          tasks={filterTasks(state.columns.inProgress)}
+          tasks={getTasks(state.columns.inProgress)}
           onDelete={handleDeleteTask}
           onEdit={handleEditTask}
         />
@@ -111,7 +143,7 @@ const Boards = () => {
         <Column
           title="Done"
           columnKey="done"
-          tasks={filterTasks(state.columns.done)}
+          tasks={sortTasks(filterTasks(state.columns.done))}
           onDelete={handleDeleteTask}
           onEdit={handleEditTask}
         />
