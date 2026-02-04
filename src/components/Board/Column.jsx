@@ -12,17 +12,17 @@ const Column = ({ title, tasks, columnKey, onDelete, onEdit, isSearching }) => {
           ref={provided.innerRef}
           {...provided.droppableProps}
           className={`
-            flex flex-col w-1/3 min-h-[420px] p-4 rounded-xl
+            flex flex-col w-1/3 min-h-[320px] p-4 rounded-xl
             bg-slate-800 border border-slate-700
             transition
             ${snapshot.isDraggingOver ? "ring-2 ring-blue-500" : ""}
           `}
         >
           {/* Column header */}
-          <h2 className="text-center text-lg font-medium mb-4">
+          <div className="text-center text-lg font-medium mb-4 ">
             {title}
-          </h2>
-
+          </div>
+            
           {/* Task list */}
           <div className="flex flex-col gap-4 flex-grow">
             {tasks.length === 0 ? (
