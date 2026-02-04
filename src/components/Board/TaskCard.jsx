@@ -1,17 +1,22 @@
+// ========================== TaskCard.jsx ==========================
+// Individual draggable task card with drag preview animation
+
 import { useState } from "react";
 import { Draggable } from "@hello-pangea/dnd";
 
-const priorityColor = {
-  low: "bg-green-200 text-green-800",
-  medium: "bg-yellow-200 text-yellow-800",
-  high: "bg-red-200 text-red-800",
+const priorityStyle = {
+  low: "bg-green-900 text-green-300",
+  medium: "bg-yellow-900 text-yellow-300",
+  high: "bg-red-900 text-red-300",
 };
 
 const TaskCard = ({ task, columnKey, onDelete, onEdit, index }) => {
+  // Local edit mode state
   const [isEditing, setIsEditing] = useState(false);
   const [title, setTitle] = useState(task.title);
   const [description, setDescription] = useState(task.description);
 
+  // Save edited task
   const handleSave = () => {
     if (!title.trim()) return;
     onEdit(task.id, columnKey, title, description);
@@ -20,54 +25,88 @@ const TaskCard = ({ task, columnKey, onDelete, onEdit, index }) => {
 
   return (
     <Draggable draggableId={task.id} index={index}>
-      {(provided) => (
+      {(provided, snapshot) => (
         <div
           ref={provided.innerRef}
           {...provided.draggableProps}
           {...provided.dragHandleProps}
-          className="bg-white rounded-md p-3 shadow-sm"
+          // Drag preview + drop animation
+          className={`
+            relative rounded-xl p-4 border border-slate-700
+            bg-slate-900 transition-all duration-200
+            ${snapshot.isDragging ? "scale-105 shadow-xl" : "shadow-sm"}
+          `}
         >
-          {/* PRIORITY */}
+          {/* Priority badge */}
           <span
-            className={`px-2 py-1 rounded text-xs mb-1 inline-block ${priorityColor[task.priority || "medium"]
-              }`}
+            className={`absolute top-3 right-3 text-xs px-2 py-0.5 rounded-full ${
+              priorityStyle[task.priority || "medium"]
+            }`}
           >
             {task.priority || "medium"}
           </span>
 
-          {/* TAGS */}
-          <div className="flex gap-1 flex-wrap mb-1">
-            {(task.tags || []).map((tag) => (
-              <span
-                key={tag}
-                className="text-xs bg-gray-200 px-2 py-0.5 rounded"
-              >
-                #{tag}
-              </span>
-            ))}
-          </div>
+          {/* Tags */}
+          {(task.tags || []).length > 0 && (
+            <div className="flex gap-1 flex-wrap mb-2">
+              {task.tags.map((tag) => (
+                <span
+                  key={tag}
+                  className="text-xs bg-slate-700 text-slate-300 px-2 py-0.5 rounded"
+                >
+                  #{tag}
+                </span>
+              ))}
+            </div>
+          )}
 
+          {/* Edit mode */}
           {isEditing ? (
             <>
               <input
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
-                className="border px-2 py-1 w-full mb-2"
+                className="bg-slate-800 border border-slate-700 px-2 py-1 w-full mb-2 rounded"
               />
-              <input
+              <textarea
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
-                className="border px-2 py-1 w-full mb-2"
+                rows={2}
+                className="bg-slate-800 border border-slate-700 px-2 py-1 w-full mb-3 rounded resize-none"
               />
-              <button onClick={handleSave}>Save</button>
+              <button
+                onClick={handleSave}
+                className="text-sm text-green-400"
+              >
+                Save
+              </button>
             </>
           ) : (
             <>
-              <h3 className="font-medium">{task.title}</h3>
-              <p className="text-sm text-gray-600">{task.description}</p>
-              <div className="flex gap-2 mt-2">
-                <button onClick={() => setIsEditing(true)}>Edit</button>
-                <button onClick={() => onDelete(task.id, columnKey)}>
+              {/* Title */}
+              <h3 className="font-semibold text-slate-100 mb-1">
+                {task.title}
+              </h3>
+
+              {/* Description */}
+              {task.description && (
+                <p className="text-sm text-slate-400 mb-3">
+                  {task.description}
+                </p>
+              )}
+
+              {/* Actions */}
+              <div className="flex gap-4 text-sm">
+                <button
+                  onClick={() => setIsEditing(true)}
+                  className="text-blue-400 hover:underline"
+                >
+                  Edit
+                </button>
+                <button
+                  onClick={() => onDelete(task, columnKey)}
+                  className="text-red-400 hover:underline"
+                >
                   Delete
                 </button>
               </div>

@@ -1,169 +1,241 @@
-import { useContext, useState } from 'react'
-import Column from './Column'
-import { KanbanContext } from '../../contexts/KanbanContext'
-import { DragDropContext,} from '@hello-pangea/dnd';
 
-const priorityRank={
-  high:1,
-  medium:2,
-  low:3,
-}
+
+import { useContext, useMemo, useState } from "react";
+import Column from "./Column";
+import Toast from "./Toast";
+import { KanbanContext } from "../../contexts/KanbanContext";
+import { DragDropContext } from "@hello-pangea/dnd";
+
+// Priority ranking used for sorting
+const priorityRank = {
+  high: 1,
+  medium: 2,
+  low: 3,
+};
 
 const Boards = () => {
   const { state, dispatch } = useContext(KanbanContext);
 
-  // form state for adding new task
-  const [title,setTitle]=useState("");
-  const [description,setDescription]=useState("");
-  const [search,setSearch]=useState("");
-  const [priority,setPriority]=useState("medium");
-  const [tagsInput,setTagsInput]=useState("");
+  // ---------- FORM STATE ----------
+  const [title, setTitle] = useState("");
+  const [description, setDescription] = useState("");
+  const [priority, setPriority] = useState("medium");
+  const [tagsInput, setTagsInput] = useState("");
 
-  // toggling sort on and off according to drag
-  const [isDragging,setIsDragging]=useState(false);
+  // ---------- UI STATE ----------
+  const [search, setSearch] = useState("");
+  const [isDragging, setIsDragging] = useState(false);
 
-  // function to handle adding new task
-  const handleAddTask=(e)=>{
+  // ---------- TOAST + UNDO STATE ----------
+  const [showToast, setShowToast] = useState(false);
+  const [lastDeleted, setLastDeleted] = useState(null);
+
+  // ---------- ADD TASK ----------
+  const handleAddTask = (e) => {
     e.preventDefault();
+    if (!title.trim()) return;
 
-    // Always validate before dispatch.
-    if(!title.trim())return ;
-
-    const tagsArray=tagsInput.split(",").map(tag=>tag.trim()).filter(Boolean);
     dispatch({
-      // 🔹 Action name matches reducer
-      type:"ADD_TASK",
-      payload:{
-        id:Date.now().toString(),
+      type: "ADD_TASK",
+      payload: {
+        id: Date.now().toString(),
         title,
         description,
         priority,
-        tags:tagsArray,
+        tags: tagsInput
+          .split(",")
+          .map((t) => t.trim())
+          .filter(Boolean),
       },
     });
-    // Clear form fields after adding task
+
+    // reset form
     setTitle("");
     setDescription("");
     setTagsInput("");
     setPriority("medium");
   };
-  const handleDeleteTask=(id,column)=>{
+
+  // ---------- DELETE WITH UNDO ----------
+  const handleDeleteTask = (task, column) => {
+    // save deleted task snapshot
+    setLastDeleted({ task, column });
+
     dispatch({
-      type:"DELETE_TASK",
-      payload:{id,column}
+      type: "DELETE_TASK",
+      payload: { id: task.id, column },
     });
-  }
-  const handleEditTask=(id, column, title, description)=>{
+
+    setShowToast(true);
+  };
+
+  // ---------- UNDO DELETE ----------
+  const handleUndo = () => {
+    if (!lastDeleted) return;
+
     dispatch({
-      type:"EDIT_TASK",
-      payload:{id,column,title,description}
+      type: "ADD_TASK",
+      payload: lastDeleted.task,
+      column: lastDeleted.column,
     });
-  }
-  // function to handle drag and drop
-  const handleDragEnd=(result)=> {
-    // console.log(result);
-    if(!result.destination)return;
+
+    setLastDeleted(null);
+    setShowToast(false);
+  };
+
+  // ---------- DRAG HANDLING ----------
+  const handleDragEnd = (result) => {
+    setIsDragging(false);
+    if (!result.destination) return;
+
     dispatch({
-      type:"MOVE_TASK",
-      payload:{
-        sourceCol:result.source.droppableId,
-        destCol:result.destination.droppableId,
-        sourceIndex:result.source.index,
-        destIndex:result.destination.index
+      type: "MOVE_TASK",
+      payload: {
+        sourceCol: result.source.droppableId,
+        destCol: result.destination.droppableId,
+        sourceIndex: result.source.index,
+        destIndex: result.destination.index,
       },
     });
-  }
-
-  // filter tasks and search functionality
-  const filterTasks=(tasks)=>{
-    return tasks.filter((task)=>task.title.toLowerCase().includes(search.toLowerCase()));
   };
 
-  const sortTasks=(tasks)=>{
-    return [...tasks].sort(
-      (a,b)=>priorityRank[a.priority||"medium"]-priorityRank[b.priority||"medium"]
-    );
-  };
+  // ---------- OPTIMIZED DERIVED STATE ----------
+  // Filters by:
+  // 1. Title
+  // 2. Tags (ANY matching tag)
+  // Then sorts by priority (unless dragging)
+  const getTasks = (tasks) =>
+    useMemo(() => {
+      const query = search.toLowerCase().trim();
 
-  // a function to manually update the task passing 
-  const getTasks=(tasks)=>{
-    const filtered=filterTasks(tasks);
-    return isDragging?filtered:sortTasks(filtered);
-  }
+      // 🔍 SEARCH LOGIC (TITLE + TAGS)
+      const filtered = tasks.filter((task) => {
+        const titleMatch = task.title
+          .toLowerCase()
+          .includes(query);
 
-  // this return function is rendering the columns and tasks on the board 
+        const tagsMatch = (task.tags || []).some((tag) =>
+          tag.toLowerCase().includes(query)
+        );
+
+        return titleMatch || tagsMatch;
+      });
+
+      // During drag → do not sort (UX safety)
+      if (isDragging) return filtered;
+
+      // Priority-based sorting
+      return [...filtered].sort(
+        (a, b) =>
+          priorityRank[a.priority || "medium"] -
+          priorityRank[b.priority || "medium"]
+      );
+    }, [tasks, search, isDragging]);
+
   return (
-    <DragDropContext
-      onDragStart={()=>setIsDragging(true)}
-      onDragEnd={(result)=>{
-        setIsDragging(false);
-        handleDragEnd(result);
-      }}> 
-     <div className="p-6">
-      {/* search bar */}
-      <input placeholder='search tasks' value={search} onChange={(e)=>setSearch(e.target.value)}
-          className="border px-3 py-2 rounded mb-4 w-1/3"/>
+    <>
+      {/* ---------- HEADER ---------- */}
+      <div className="px-6 pt-10 pb-6 text-slate-200">
+        <div className="flex flex-col items-center gap-4 mb-10">
+          <h1 className="text-3xl font-semibold tracking-wide">
+            Kanban Board
+          </h1>
 
-      {/* adding task */}
-      <form onSubmit={handleAddTask} className="mb-6 flex gap-3">
-        <input
-          value={title}
-          onChange={(e) => setTitle(e.target.value)}
-          placeholder="Task title"
-          className="border px-3 py-2 rounded w-1/3"
+          {/* SEARCH INPUT (TITLE + TAGS) */}
+          <input
+            placeholder="Search by title or tag..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="w-80 bg-slate-700 border border-slate-800 px-4 py-2 rounded-lg placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
+          />
+        </div>
+
+        {/* ---------- ADD TASK ---------- */}
+        <form
+          onSubmit={handleAddTask}
+          className="bg-slate-900 border border-slate-800 rounded-xl px-4 py-3 mb-12 max-w-5xl mx-auto flex gap-3 items-center"
+        >
+          <input
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            placeholder="Task title"
+            className="bg-slate-950 border border-slate-800 px-3 py-2 rounded-lg w-1/5"
           />
 
-        <input
-          value={description}
-          onChange={(e) => setDescription(e.target.value)}
-          placeholder="Description"
-          className="border px-3 py-2 rounded w-1/3"
-        />
+          <input
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+            placeholder="Description"
+            className="bg-slate-950 border border-slate-800 px-3 py-2 rounded-lg w-1/4"
+          />
 
-        <input 
-          value={tagsInput} 
-          onChange={(e)=>setTagsInput(e.target.value)}
-          placeholder='tags'
-          className='border px-3 py-2 rounded w-1/4'
-        />
+          <input
+            value={tagsInput}
+            onChange={(e) => setTagsInput(e.target.value)}
+            placeholder="Tags (comma separated)"
+            className="bg-slate-950 border border-slate-800 px-3 py-2 rounded-lg w-1/4"
+          />
 
-        <select value={priority} onChange={(e)=>setPriority(e.target.value)}className="border px-3 py-2 rounded">
-          <option value="low">low</option>
-          <option value="medium">medium</option>
-          <option value="high">high</option>
-        </select>
-        <button className="px-4 py-2 bg-blue-600 text-white rounded">
-          Add Task
-        </button>
-      </form>
-      {/* delete task and edit task */}
-      <div className="flex gap-6">
-        <Column
-          title="Todo"
-          columnKey="todo"
-          tasks={getTasks(state.columns.todo)}
-          onDelete={handleDeleteTask}
-          onEdit={handleEditTask}
-        />
-        <Column
-          title="In Progress"
-          columnKey="inProgress"
-          tasks={getTasks(state.columns.inProgress)}
-          onDelete={handleDeleteTask}
-          onEdit={handleEditTask}
-        />
+          <select
+            value={priority}
+            onChange={(e) => setPriority(e.target.value)}
+            className="bg-slate-950 border border-slate-800 px-3 py-2 rounded-lg"
+          >
+            <option value="low">Low</option>
+            <option value="medium">Medium</option>
+            <option value="high">High</option>
+          </select>
 
-        <Column
-          title="Done"
-          columnKey="done"
-          tasks={sortTasks(filterTasks(state.columns.done))}
-          onDelete={handleDeleteTask}
-          onEdit={handleEditTask}
-        />
+          <button
+            disabled={!title.trim()}
+            className="bg-blue-600 hover:bg-blue-500 disabled:opacity-40 transition px-3 py-2 rounded-lg text-sm font-medium"
+          >
+            Add
+          </button>
+        </form>
+
+        {/* ---------- BOARD ---------- */}
+        <DragDropContext
+          onDragStart={() => setIsDragging(true)}
+          onDragEnd={handleDragEnd}
+        >
+          <div className="max-w-6xl mx-auto flex gap-6">
+            <Column
+              title="Todo"
+              columnKey="todo"
+              tasks={getTasks(state.columns.todo)}
+              onDelete={handleDeleteTask}
+              isSearching={!!search}
+            />
+            <Column
+              title="In Progress"
+              columnKey="inProgress"
+              tasks={getTasks(state.columns.inProgress)}
+              onDelete={handleDeleteTask}
+              isSearching={!!search}
+            />
+            <Column
+              title="Done"
+              columnKey="done"
+              tasks={getTasks(state.columns.done)}
+              onDelete={handleDeleteTask}
+              isSearching={!!search}
+            />
+          </div>
+        </DragDropContext>
       </div>
-    </div>
-  </DragDropContext>
-  )
-}
+
+      {/* ---------- TOAST ---------- */}
+      {showToast && (
+        <Toast
+          message="Task deleted"
+          actionLabel="Undo"
+          onAction={handleUndo}
+          onClose={() => setShowToast(false)}
+        />
+      )}
+    </>
+  );
+};
 
 export default Boards;

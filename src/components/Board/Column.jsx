@@ -1,50 +1,47 @@
-// const Column=({title,tasks,columnKey,onDelete,onEdit})=> {
-//   return (
-//     <div className='w-1/3 bg-gray-100 rounded-lg p-4'>
-//         <h2 className="font-semibold text-lg mb-4">
-//             {title}
-//         </h2>
-//         <div className='flex flex-col gap-3'>
-//             {tasks.map(task=>(
-//                 <TaskCard
-//                  key={task.id}
-//                  task={task} 
-//                  columnKey={columnKey} 
-//                  onDelete={onDelete}
-//                  onEdit={onEdit}
-//                 />
-//             ))}
-//         </div>
-//     </div>
-//   )
-// }
-// export default Column;
+// ========================== Column.jsx ==========================
+// Column with empty & error states and drag-over feedback
 
-import TaskCard from "./TaskCard";
 import { Droppable } from "@hello-pangea/dnd";
+import TaskCard from "./TaskCard";
 
-const Column = ({ title, tasks, columnKey, onDelete, onEdit }) => {
+const Column = ({ title, tasks, columnKey, onDelete, onEdit, isSearching }) => {
   return (
     <Droppable droppableId={columnKey}>
-      {(provided) => (
+      {(provided, snapshot) => (
         <div
           ref={provided.innerRef}
           {...provided.droppableProps}
-          className="w-1/3 bg-gray-100 rounded-lg p-4"
+          className={`
+            flex flex-col w-1/3 min-h-[420px] p-4 rounded-xl
+            bg-slate-800 border border-slate-700
+            transition
+            ${snapshot.isDraggingOver ? "ring-2 ring-blue-500" : ""}
+          `}
         >
-          <h2 className="font-semibold text-lg mb-4">{title}</h2>
+          {/* Column header */}
+          <h2 className="text-center text-lg font-medium mb-4">
+            {title}
+          </h2>
 
-          <div className="flex flex-col gap-3">
-            {tasks.map((task, index) => (
-              <TaskCard
-                key={task.id}
-                task={task}
-                index={index}
-                columnKey={columnKey}
-                onDelete={onDelete}
-                onEdit={onEdit}
-              />
-            ))}
+          {/* Task list */}
+          <div className="flex flex-col gap-4 flex-grow">
+            {tasks.length === 0 ? (
+              // Empty / error state
+              <p className="text-sm text-slate-500 text-center mt-10">
+                {isSearching ? "No matching tasks" : "No tasks here"}
+              </p>
+            ) : (
+              tasks.map((task, index) => (
+                <TaskCard
+                  key={task.id}
+                  task={task}
+                  index={index}
+                  columnKey={columnKey}
+                  onDelete={onDelete}
+                  onEdit={onEdit}
+                />
+              ))
+            )}
             {provided.placeholder}
           </div>
         </div>
