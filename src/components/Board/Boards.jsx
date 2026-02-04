@@ -17,6 +17,7 @@ const Boards = () => {
   const [description,setDescription]=useState("");
   const [search,setSearch]=useState("");
   const [priority,setPriority]=useState("medium");
+  const [tagsInput,setTagsInput]=useState("");
 
   // toggling sort on and off according to drag
   const [isDragging,setIsDragging]=useState(false);
@@ -27,6 +28,8 @@ const Boards = () => {
 
     // Always validate before dispatch.
     if(!title.trim())return ;
+
+    const tagsArray=tagsInput.split(",").map(tag=>tag.trim()).filter(Boolean);
     dispatch({
       // 🔹 Action name matches reducer
       type:"ADD_TASK",
@@ -35,12 +38,14 @@ const Boards = () => {
         title,
         description,
         priority,
+        tags:tagsArray,
       },
     });
     // Clear form fields after adding task
     setTitle("");
     setDescription("");
-
+    setTagsInput("");
+    setPriority("medium");
   };
   const handleDeleteTask=(id,column)=>{
     dispatch({
@@ -114,6 +119,14 @@ const Boards = () => {
           placeholder="Description"
           className="border px-3 py-2 rounded w-1/3"
         />
+
+        <input 
+          value={tagsInput} 
+          onChange={(e)=>setTagsInput(e.target.value)}
+          placeholder='tags'
+          className='border px-3 py-2 rounded w-1/4'
+        />
+
         <select value={priority} onChange={(e)=>setPriority(e.target.value)}className="border px-3 py-2 rounded">
           <option value="low">low</option>
           <option value="medium">medium</option>

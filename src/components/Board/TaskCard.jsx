@@ -1,11 +1,11 @@
 import { useState } from "react";
 import { Draggable } from "@hello-pangea/dnd";
 
-const priorityColors={
-  low:"bg-green-200 text-green-800",
+const priorityColor = {
+  low: "bg-green-200 text-green-800",
   medium: "bg-yellow-200 text-yellow-800",
   high: "bg-red-200 text-red-800",
-}
+};
 
 const TaskCard = ({ task, columnKey, onDelete, onEdit, index }) => {
   const [isEditing, setIsEditing] = useState(false);
@@ -27,6 +27,26 @@ const TaskCard = ({ task, columnKey, onDelete, onEdit, index }) => {
           {...provided.dragHandleProps}
           className="bg-white rounded-md p-3 shadow-sm"
         >
+          {/* PRIORITY */}
+          <span
+            className={`px-2 py-1 rounded text-xs mb-1 inline-block ${priorityColor[task.priority || "medium"]
+              }`}
+          >
+            {task.priority || "medium"}
+          </span>
+
+          {/* TAGS */}
+          <div className="flex gap-1 flex-wrap mb-1">
+            {(task.tags || []).map((tag) => (
+              <span
+                key={tag}
+                className="text-xs bg-gray-200 px-2 py-0.5 rounded"
+              >
+                #{tag}
+              </span>
+            ))}
+          </div>
+
           {isEditing ? (
             <>
               <input
@@ -43,13 +63,14 @@ const TaskCard = ({ task, columnKey, onDelete, onEdit, index }) => {
             </>
           ) : (
             <>
-              <span className={`px-2 py-1 rounded text-xs mb-1 inline-block ${priorityColors[task.priority || "medium"]}`}>
-                {task.priority || "medium"}
-              </span>
-              <h3>{task.title}</h3>
-              <p>{task.description}</p>
-              <button onClick={() => setIsEditing(true)}>Edit</button>
-              <button onClick={() => onDelete(task.id, columnKey)}>Delete</button>
+              <h3 className="font-medium">{task.title}</h3>
+              <p className="text-sm text-gray-600">{task.description}</p>
+              <div className="flex gap-2 mt-2">
+                <button onClick={() => setIsEditing(true)}>Edit</button>
+                <button onClick={() => onDelete(task.id, columnKey)}>
+                  Delete
+                </button>
+              </div>
             </>
           )}
         </div>
