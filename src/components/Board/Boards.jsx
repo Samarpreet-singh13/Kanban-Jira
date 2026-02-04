@@ -69,6 +69,13 @@ const Boards = () => {
     setShowToast(true);
   };
 
+  const handleEditTask = (id, column, title, description) => {
+    dispatch({
+      type: "EDIT_TASK",
+      payload: { id, column, title, description },
+    });
+  };
+
   // ---------- UNDO DELETE ----------
   const handleUndo = () => {
     if (!lastDeleted) return;
@@ -205,22 +212,28 @@ const Boards = () => {
               columnKey="todo"
               tasks={getTasks(state.columns.todo)}
               onDelete={handleDeleteTask}
+              onEdit={handleEditTask}
               isSearching={!!search}
             />
+
             <Column
               title="In Progress"
               columnKey="inProgress"
               tasks={getTasks(state.columns.inProgress)}
               onDelete={handleDeleteTask}
+              onEdit={handleEditTask}
               isSearching={!!search}
             />
+
             <Column
               title="Done"
               columnKey="done"
               tasks={getTasks(state.columns.done)}
               onDelete={handleDeleteTask}
+              onEdit={handleEditTask}
               isSearching={!!search}
             />
+
           </div>
         </DragDropContext>
       </div>

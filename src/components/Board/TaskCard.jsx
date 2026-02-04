@@ -11,6 +11,11 @@ const priorityStyle = {
 };
 
 const TaskCard = ({ task, columnKey, onDelete, onEdit, index }) => {
+  if (!onEdit) {
+  console.error("onEdit is missing");
+  return;
+}
+
   // Local edit mode state
   const [isEditing, setIsEditing] = useState(false);
   const [title, setTitle] = useState(task.title);
